@@ -3,6 +3,7 @@ import type { DirectorState, DirectorAction } from '../../hooks/useDirectorState
 import { GlassPanel } from '../shared/GlassPanel';
 import { FlowModeSelector } from '../controls/FlowModeSelector';
 import { CompileModeToggle } from '../controls/CompileModeToggle';
+import { ApiKeySettings } from '../controls/ApiKeySettings';
 import { SceneInput } from '../controls/SceneInput';
 import { CameraSelector } from '../controls/CameraSelector';
 import { LightingSelector } from '../controls/LightingSelector';
@@ -264,6 +265,11 @@ export function Sidebar({
             onChange={onCompileModeChange}
             disabled={!apiKeyConfigured}
           />
+          <div style={{ marginTop: 'var(--space-2)' }}>
+            <ApiKeySettings
+              onKeyChange={(configured) => dispatch({ type: 'SET_API_KEY_CONFIGURED', payload: configured })}
+            />
+          </div>
         </GlassPanel>
       </div>
 

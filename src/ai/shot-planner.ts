@@ -88,7 +88,7 @@ export async function planShot(
 
   // ── Get API key ──────────────────────────────────────────────────────
   const apiKey = options?.apiKey
-    ?? (typeof import.meta !== 'undefined' ? (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } }).env?.VITE_GEMINI_API_KEY : undefined);
+    ?? getApiKey();
 
   if (!apiKey || apiKey === 'your-key-here') {
     throw new Error('MISSING_API_KEY');
@@ -142,14 +142,64 @@ export async function planShot(
   return result.data;
 }
 
+// ─────────────────────────────────────────────
+// API Key Management
+// ─────────────────────────────────────────────
+
+const STORAGE_KEY = 'nbp_gemini_api_key';
+
+/**
+ * Resolves the API key from localStorage (user-entered) or Vite env var.
+ */
+export function getApiKey(): string | undefined {
+  // 1. Check localStorage (user-pasted via UI)
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored && stored.length > 10 && stored !== 'your-key-here') {
+      return stored;
+    }
+  } catch {
+    // localStorage not available (SSR, etc.)
+  }
+
+  // 2. Check Vite env var (.env file)
+  try {
+    const envKey = (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } }).env?.VITE_GEMINI_API_KEY;
+    if (envKey && envKey !== 'your-key-here' && envKey.length > 10) {
+      return envKey;
+    }
+  } catch {
+    // import.meta not available
+  }
+
+  return undefined;
+}
+
+/**
+ * Saves an API key to localStorage.
+ */
+export function saveApiKey(key: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, key.trim());
+  } catch {
+    // localStorage not available
+  }
+}
+
+/**
+ * Clears the stored API key.
+ */
+export function clearApiKey(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // localStorage not available
+  }
+}
+
 /**
  * Checks if a Gemini API key is configured and valid-looking.
  */
 export function isApiKeyConfigured(): boolean {
-  try {
-    const key = (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } }).env?.VITE_GEMINI_API_KEY;
-    return !!key && key !== 'your-key-here' && key.length > 10;
-  } catch {
-    return false;
-  }
+  return !!getApiKey();
 }
