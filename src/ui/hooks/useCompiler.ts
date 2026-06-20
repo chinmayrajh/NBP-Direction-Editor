@@ -77,7 +77,17 @@ export function useCompiler(state: DirectorState, dispatch: React.Dispatch<Direc
     dispatch,
   ]);
 
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
+    // Compile immediately on mount — no waiting
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      compile();
+      return;
+    }
+
+    // Debounce subsequent changes
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
