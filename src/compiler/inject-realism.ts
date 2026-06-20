@@ -60,10 +60,14 @@ function buildCameraSystemString(plan: PhotographyPlanIR): string {
   const cam = plan.camera;
   const spec = NBP_RULES.cameraPhysics[cam.style];
 
+  const sensorLabel = spec.sensor.toLowerCase().includes('sensor')
+    ? spec.sensor
+    : `${spec.sensor} sensor`;
+
   const parts: string[] = [
     `shot on ${spec.focalLength} lens`,
     `${spec.aperture} aperture`,
-    `${spec.sensor} sensor`,
+    sensorLabel,
     ...spec.characteristics,
   ];
 
@@ -195,6 +199,7 @@ export function injectRealism(
   const negativePrompt: string[] = [...NBP_RULES.negativePromptDefaults];
 
   return {
+    sceneDescription: intent.scene,
     identityLock: buildIdentityLockString(identity),
     cameraSystem: buildCameraSystemString(plan),
     lightingSystem: buildLightingSystemString(plan),

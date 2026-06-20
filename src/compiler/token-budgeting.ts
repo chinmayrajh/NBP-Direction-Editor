@@ -134,6 +134,9 @@ export function budgetTokens(
 
   // ── Collect tier contents ─────────────────────────────────────────────
 
+  // ── Scene description (Tier 0 — always first) ────────────────────────
+  const sceneText = getModuleContent(modules, 'sceneDescription').trim();
+
   const tier1Parts: string[] = [];
   for (const key of TIER_1_KEYS) {
     const content = getModuleContent(modules, key).trim();
@@ -160,6 +163,7 @@ export function budgetTokens(
 
   // ── Calculate token counts ────────────────────────────────────────────
 
+  const sceneTokens = countTokens(sceneText);
   const tier1Text = tier1Parts.join(', ');
   const tier1Tokens = countTokens(tier1Text);
 
@@ -169,7 +173,7 @@ export function budgetTokens(
   const tier3Text = tier3Parts.map((p) => p.content).join(', ');
   const tier3Tokens = countTokens(tier3Text);
 
-  let totalTokens = tier1Tokens + tier2Tokens + tier3Tokens;
+  let totalTokens = sceneTokens + tier1Tokens + tier2Tokens + tier3Tokens;
 
   // ── Budget enforcement ────────────────────────────────────────────────
 
@@ -203,6 +207,7 @@ export function budgetTokens(
 
   const promptParts: string[] = [];
 
+  if (sceneText.length > 0) promptParts.push(sceneText);
   if (tier1Text.length > 0) promptParts.push(tier1Text);
   if (tier2Text.length > 0) promptParts.push(tier2Text);
   if (finalTier3Text.length > 0) promptParts.push(finalTier3Text);

@@ -552,6 +552,8 @@ export type PhotographyPlanIR = {
  * critique loop.
  */
 export type PromptModules = {
+  /** The user's core scene description — placed at the very start of the prompt. */
+  sceneDescription: string;
   /** Identity-lock tokens: Tier 1 + Tier 2 anchors serialized as prompt text. */
   identityLock: string;
   /** Camera system tokens: lens, sensor, aperture, film-stock, distortion. */

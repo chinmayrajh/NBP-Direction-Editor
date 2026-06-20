@@ -13,6 +13,7 @@ type ModuleEntry = {
 };
 
 const MODULE_ENTRIES: ModuleEntry[] = [
+  { icon: '🎬', name: 'Scene Description', key: 'sceneDescription', color: '#f59e0b' },
   { icon: '🔒', name: 'Identity Lock', key: 'identityLock', color: 'var(--accent-blue)' },
   { icon: '📷', name: 'Camera System', key: 'cameraSystem', color: 'var(--accent-green)' },
   { icon: '💡', name: 'Lighting System', key: 'lightingSystem', color: 'var(--accent-warm)' },
