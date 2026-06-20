@@ -32,13 +32,22 @@ export type CompileProgress = {
   startedAt: number;
 } | null;
 
+// ─── AI Availability ───────────────────────────────────────────────────────────
+
+/** Describes which AI backends are available. */
+export type AiAvailability = {
+  builtinAi: boolean;
+  geminiApi: boolean;
+  anyAvailable: boolean;
+};
+
 // ─── State ─────────────────────────────────────────────────────────────────────
 
 export type DirectorState = {
   flowMode: FlowMode;
   compileMode: CompileMode;
   compileProgress: CompileProgress;
-  apiKeyConfigured: boolean;
+  aiAvailable: AiAvailability;
   scene: string;
   cameraStyle: CameraStyle;
   lightingStyle: LightingStyle;
@@ -60,7 +69,7 @@ const initialState: DirectorState = {
   flowMode: 'create',
   compileMode: 'deterministic',
   compileProgress: null,
-  apiKeyConfigured: false,
+  aiAvailable: { builtinAi: false, geminiApi: false, anyAvailable: false },
   scene: '',
   cameraStyle: '85mm_portrait',
   lightingStyle: 'window_light',
@@ -83,7 +92,7 @@ export type DirectorAction =
   | { type: 'SET_FLOW_MODE'; payload: FlowMode }
   | { type: 'SET_COMPILE_MODE'; payload: CompileMode }
   | { type: 'SET_COMPILE_PROGRESS'; payload: CompileProgress }
-  | { type: 'SET_API_KEY_CONFIGURED'; payload: boolean }
+  | { type: 'SET_AI_AVAILABLE'; payload: AiAvailability }
   | { type: 'SET_SCENE'; payload: string }
   | { type: 'SET_CAMERA'; payload: CameraStyle }
   | { type: 'SET_LIGHTING'; payload: LightingStyle }
@@ -127,8 +136,8 @@ function directorReducer(state: DirectorState, action: DirectorAction): Director
     case 'SET_COMPILE_PROGRESS':
       return { ...state, compileProgress: action.payload };
 
-    case 'SET_API_KEY_CONFIGURED':
-      return { ...state, apiKeyConfigured: action.payload };
+    case 'SET_AI_AVAILABLE':
+      return { ...state, aiAvailable: action.payload };
 
     case 'SET_SCENE':
       return { ...state, scene: action.payload };

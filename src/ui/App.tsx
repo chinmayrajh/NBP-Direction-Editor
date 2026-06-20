@@ -3,17 +3,30 @@ import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { OutputPanel } from './components/layout/OutputPanel';
+import { ExtensionApp } from './components/layout/ExtensionApp';
 import { useDirectorState } from './hooks/useDirectorState';
 import { useCompiler } from './hooks/useCompiler';
-import { isApiKeyConfigured } from '../ai/shot-planner';
+import { isAiAvailable } from '../ai/shot-planner';
+
+const isExtension = typeof chrome !== 'undefined' && !!chrome?.runtime?.id;
 
 export function App() {
+  if (isExtension) {
+    return <ExtensionApp />;
+  }
+
+  return <DesktopApp />;
+}
+
+function DesktopApp() {
   const { state, dispatch } = useDirectorState();
   const { compile } = useCompiler(state, dispatch);
 
-  // Check for API key on mount
+  // Check for AI availability on mount
   useEffect(() => {
-    dispatch({ type: 'SET_API_KEY_CONFIGURED', payload: isApiKeyConfigured() });
+    isAiAvailable().then((availability) => {
+      dispatch({ type: 'SET_AI_AVAILABLE', payload: availability });
+    });
   }, [dispatch]);
 
   const isCompleted = state.project?.generationState?.status === 'completed';
@@ -48,7 +61,7 @@ export function App() {
             compileMode={state.compileMode}
             onCompileModeChange={(mode) => dispatch({ type: 'SET_COMPILE_MODE', payload: mode })}
             compileProgress={state.compileProgress}
-            apiKeyConfigured={state.apiKeyConfigured}
+            aiAvailable={state.aiAvailable}
           />
           <OutputPanel
             project={state.project}

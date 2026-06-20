@@ -1,17 +1,17 @@
 /**
  * @module ai/shot-planner
- * @description AI Shot Planner — calls Gemini 2.0 Flash to extrapolate
- * a user's scene description into a detailed photography shot plan.
+ * @description AI Shot Planner with fallback chain:
  *
- * This is a pure async function with no side effects beyond the API call.
- * It does NOT handle identity tokens, negative prompts, or token budgeting
- * — those are handled deterministically by the caller.
+ * 1. Chrome Built-in AI (Prompt API) — free, local, no key
+ * 2. Gemini API (@google/genai) — optional API key for higher quality
+ * 3. Throws NO_AI_AVAILABLE — caller falls back to deterministic
  */
 
 import { GoogleGenAI } from '@google/genai';
 import type { DirectorInputs } from '../ir/project.js';
 import { ShotPlanSchema, getShotPlanJsonSchema } from './schema.js';
 import type { ShotPlan } from './schema.js';
+import { platform } from '../platform/index.js';
 
 // ─────────────────────────────────────────────
 // System Prompt
@@ -58,51 +58,95 @@ Plan this shot. Fill every field in the JSON schema with specific, technical pho
 }
 
 // ─────────────────────────────────────────────
-// Public API
+// Zod Validation Helper
 // ─────────────────────────────────────────────
 
-export interface PlanShotOptions {
-  /** AbortSignal for cancellation. */
-  signal?: AbortSignal;
-  /** Override API key (otherwise reads from import.meta.env). */
-  apiKey?: string;
+function validateShotPlan(text: string): ShotPlan {
+  if (!text) throw new Error('AI_EMPTY_RESPONSE');
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('AI_MALFORMED_JSON');
+  }
+
+  const result = ShotPlanSchema.safeParse(parsed);
+  if (!result.success) {
+    const issues = result.error.issues
+      .map((i) => `${i.path.join('.')}: ${i.message}`)
+      .join('; ');
+    throw new Error(`AI_SCHEMA_MISMATCH: ${issues}`);
+  }
+
+  return result.data;
 }
 
-/**
- * Calls Gemini 2.0 Flash to generate a structured shot plan.
- *
- * @param inputs - The user's director inputs.
- * @param options - Optional abort signal and API key override.
- * @returns A validated ShotPlan.
- * @throws If the scene is empty, API key is missing, API call fails,
- *         or the response doesn't match the schema.
- */
-export async function planShot(
+// ─────────────────────────────────────────────
+// Strategy 1: Chrome Built-in AI (Prompt API)
+// ─────────────────────────────────────────────
+
+async function planShotWithBuiltinAI(
   inputs: DirectorInputs,
-  options?: PlanShotOptions,
 ): Promise<ShotPlan> {
-  // ── Guard: empty scene ───────────────────────────────────────────────
-  if (!inputs.coreScene.trim()) {
-    throw new Error('Scene description is required for AI planning.');
+  // Check availability
+  const aiGlobal = (globalThis as Record<string, unknown>).ai as {
+    languageModel?: {
+      capabilities(): Promise<{ available: string }>;
+      create(opts: {
+        initialPrompts: { role: string; content: string }[];
+      }): Promise<{
+        prompt(
+          text: string,
+          opts?: { responseConstraint?: unknown },
+        ): Promise<string>;
+        destroy(): void;
+      }>;
+    };
+  } | undefined;
+
+  if (!aiGlobal?.languageModel) {
+    throw new Error('BUILTIN_AI_UNAVAILABLE');
   }
 
-  // ── Get API key ──────────────────────────────────────────────────────
-  const apiKey = options?.apiKey
-    ?? getApiKey();
-
-  if (!apiKey || apiKey === 'your-key-here') {
-    throw new Error('MISSING_API_KEY');
+  const capabilities = await aiGlobal.languageModel.capabilities();
+  if (capabilities.available === 'no') {
+    throw new Error('BUILTIN_AI_UNAVAILABLE');
   }
 
-  // ── Check abort ──────────────────────────────────────────────────────
-  if (options?.signal?.aborted) {
-    throw new Error('ABORTED');
+  // Create session with system prompt
+  const session = await aiGlobal.languageModel.create({
+    initialPrompts: [
+      { role: 'system', content: SYSTEM_PROMPT },
+    ],
+  });
+
+  try {
+    // Prompt with structured output constraint
+    const result = await session.prompt(buildUserMessage(inputs), {
+      responseConstraint: {
+        type: 'json-schema',
+        schema: getShotPlanJsonSchema(),
+      },
+    });
+
+    return validateShotPlan(result);
+  } finally {
+    session.destroy(); // Always release resources
   }
+}
 
-  // ── Call Gemini ──────────────────────────────────────────────────────
-  const ai = new GoogleGenAI({ apiKey });
+// ─────────────────────────────────────────────
+// Strategy 2: Gemini API (@google/genai)
+// ─────────────────────────────────────────────
 
-  const response = await ai.models.generateContent({
+async function planShotWithGeminiAPI(
+  inputs: DirectorInputs,
+  apiKey: string,
+): Promise<ShotPlan> {
+  const genai = new GoogleGenAI({ apiKey });
+
+  const response = await genai.models.generateContent({
     model: 'gemini-2.0-flash',
     contents: buildUserMessage(inputs),
     config: {
@@ -114,55 +158,77 @@ export async function planShot(
     },
   });
 
-  // ── Check abort after await ──────────────────────────────────────────
+  return validateShotPlan(response.text ?? '');
+}
+
+// ─────────────────────────────────────────────
+// Public API
+// ─────────────────────────────────────────────
+
+export interface PlanShotOptions {
+  /** AbortSignal for cancellation. */
+  signal?: AbortSignal;
+  /** Override API key (bypasses storage lookup). */
+  apiKey?: string;
+}
+
+/**
+ * Plans a shot using the best available AI strategy:
+ * 1. Chrome Built-in AI (free, local)
+ * 2. Gemini API with key (optional)
+ * 3. Throws NO_AI_AVAILABLE
+ */
+export async function planShot(
+  inputs: DirectorInputs,
+  options?: PlanShotOptions,
+): Promise<ShotPlan> {
+  if (!inputs.coreScene.trim()) {
+    throw new Error('Scene description is required for AI planning.');
+  }
+
   if (options?.signal?.aborted) {
     throw new Error('ABORTED');
   }
 
-  // ── Parse response ───────────────────────────────────────────────────
-  const text = response.text;
-  if (!text) {
-    throw new Error('AI_EMPTY_RESPONSE');
-  }
-
-  let parsed: unknown;
+  // ── Strategy 1: Chrome Built-in AI (free, no key) ──────────────────
   try {
-    parsed = JSON.parse(text);
-  } catch {
-    throw new Error('AI_MALFORMED_JSON');
+    return await planShotWithBuiltinAI(inputs);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg !== 'BUILTIN_AI_UNAVAILABLE') {
+      console.warn('[NBP] Built-in AI failed:', msg);
+    }
+    // Fall through to API key path
   }
 
-  // ── Validate with Zod ────────────────────────────────────────────────
-  const result = ShotPlanSchema.safeParse(parsed);
-  if (!result.success) {
-    const issues = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
-    throw new Error(`AI_SCHEMA_MISMATCH: ${issues}`);
+  if (options?.signal?.aborted) {
+    throw new Error('ABORTED');
   }
 
-  return result.data;
+  // ── Strategy 2: Gemini API with key (optional) ─────────────────────
+  const apiKey = options?.apiKey ?? await getApiKeyAsync();
+  if (apiKey) {
+    return await planShotWithGeminiAPI(inputs, apiKey);
+  }
+
+  // ── Neither available ──────────────────────────────────────────────
+  throw new Error('NO_AI_AVAILABLE');
 }
 
 // ─────────────────────────────────────────────
-// API Key Management
+// API Key Management (via platform abstraction)
 // ─────────────────────────────────────────────
 
 const STORAGE_KEY = 'nbp_gemini_api_key';
 
-/**
- * Resolves the API key from localStorage (user-entered) or Vite env var.
- */
-export function getApiKey(): string | undefined {
-  // 1. Check localStorage (user-pasted via UI)
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && stored.length > 10 && stored !== 'your-key-here') {
-      return stored;
-    }
-  } catch {
-    // localStorage not available (SSR, etc.)
+/** Get API key from platform storage. */
+export async function getApiKeyAsync(): Promise<string | undefined> {
+  const key = await platform.storage.get(STORAGE_KEY);
+  if (key && key.length > 10 && key !== 'your-key-here') {
+    return key;
   }
 
-  // 2. Check Vite env var (.env file)
+  // Fallback: Vite env var
   try {
     const envKey = (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } }).env?.VITE_GEMINI_API_KEY;
     if (envKey && envKey !== 'your-key-here' && envKey.length > 10) {
@@ -175,30 +241,76 @@ export function getApiKey(): string | undefined {
   return undefined;
 }
 
-/**
- * Saves an API key to localStorage.
- */
-export function saveApiKey(key: string): void {
+/** Synchronous API key check (for backward compat). */
+export function getApiKey(): string | undefined {
   try {
-    localStorage.setItem(STORAGE_KEY, key.trim());
-  } catch {
-    // localStorage not available
-  }
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored && stored.length > 10 && stored !== 'your-key-here') {
+      return stored;
+    }
+  } catch { /* not available */ }
+
+  try {
+    const envKey = (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } }).env?.VITE_GEMINI_API_KEY;
+    if (envKey && envKey !== 'your-key-here' && envKey.length > 10) {
+      return envKey;
+    }
+  } catch { /* not available */ }
+
+  return undefined;
+}
+
+/** Save API key via platform storage. */
+export async function saveApiKey(key: string): Promise<void> {
+  await platform.storage.set(STORAGE_KEY, key.trim());
+}
+
+/** Clear stored API key. */
+export async function clearApiKey(): Promise<void> {
+  await platform.storage.remove(STORAGE_KEY);
+}
+
+// ─────────────────────────────────────────────
+// AI Availability Detection
+// ─────────────────────────────────────────────
+
+export interface AiAvailability {
+  /** Chrome's built-in Prompt API (Gemini Nano, local). */
+  builtinAi: boolean;
+  /** Gemini API with user-provided key. */
+  geminiApi: boolean;
+  /** At least one AI path is available. */
+  anyAvailable: boolean;
 }
 
 /**
- * Clears the stored API key.
+ * Checks what AI capabilities are available.
+ * Call on mount to determine UI state.
  */
-export function clearApiKey(): void {
+export async function isAiAvailable(): Promise<AiAvailability> {
+  let builtinAi = false;
   try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // localStorage not available
-  }
+    const aiGlobal = (globalThis as Record<string, unknown>).ai as {
+      languageModel?: { capabilities(): Promise<{ available: string }> };
+    } | undefined;
+
+    if (aiGlobal?.languageModel) {
+      const caps = await aiGlobal.languageModel.capabilities();
+      builtinAi = caps.available !== 'no';
+    }
+  } catch { /* not available */ }
+
+  const geminiApi = !!(await getApiKeyAsync());
+
+  return {
+    builtinAi,
+    geminiApi,
+    anyAvailable: builtinAi || geminiApi,
+  };
 }
 
 /**
- * Checks if a Gemini API key is configured and valid-looking.
+ * @deprecated Use isAiAvailable() instead.
  */
 export function isApiKeyConfigured(): boolean {
   return !!getApiKey();

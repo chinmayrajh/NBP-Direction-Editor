@@ -11,7 +11,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "dev:ui": "vite",
-    "build:ui": "vite build"
+    "build:ui": "vite build",
+    "dev:ext": "vite -c vite.config.extension.ts",
+    "build:ext": "vite build -c vite.config.extension.ts"
   },
   "keywords": [
     "nano-banana-pro",
@@ -20,6 +22,9 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@crxjs/vite-plugin": "^2.7.0",
+    "@types/chrome": "^0.2.0",
+    "@types/dom-chromium-ai": "^0.0.17",
     "@types/node": "^22.10.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

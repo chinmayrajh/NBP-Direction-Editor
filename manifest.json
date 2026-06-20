@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "NBP Direction Editor",
+  "description": "AI Photography Direction Tool",
+  "version": "0.1.0",
+  "permissions": ["sidePanel", "storage", "activeTab"],
+  "host_permissions": [
+    "https://gemini.google.com/*",
+    "https://aistudio.google.com/*"
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "src/extension/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://gemini.google.com/*",
+        "https://aistudio.google.com/*"
+      ],
+      "js": ["src/extension/content-script.ts"]
+    }
+  ],
+  "action": {
+    "default_title": "Open NBP Director",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

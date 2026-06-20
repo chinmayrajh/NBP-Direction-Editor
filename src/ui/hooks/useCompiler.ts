@@ -208,12 +208,12 @@ export function useCompiler(state: DirectorState, dispatch: React.Dispatch<Direc
    * Main compile function — routes to deterministic or AI based on state.
    */
   const compile = useCallback(() => {
-    if (state.compileMode === 'ai' && state.apiKeyConfigured) {
+    if (state.compileMode === 'ai' && state.aiAvailable.anyAvailable) {
       compileAi();
     } else {
       compileDeterministic();
     }
-  }, [state.compileMode, state.apiKeyConfigured, compileDeterministic, compileAi]);
+  }, [state.compileMode, state.aiAvailable.anyAvailable, compileDeterministic, compileAi]);
 
   return { compile };
 }

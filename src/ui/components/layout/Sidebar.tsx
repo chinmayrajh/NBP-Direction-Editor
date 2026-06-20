@@ -3,7 +3,7 @@ import type { DirectorState, DirectorAction } from '../../hooks/useDirectorState
 import { GlassPanel } from '../shared/GlassPanel';
 import { FlowModeSelector } from '../controls/FlowModeSelector';
 import { CompileModeToggle } from '../controls/CompileModeToggle';
-import { ApiKeySettings } from '../controls/ApiKeySettings';
+import { AiSettings } from '../controls/AiSettings';
 import { SceneInput } from '../controls/SceneInput';
 import { CameraSelector } from '../controls/CameraSelector';
 import { LightingSelector } from '../controls/LightingSelector';
@@ -25,7 +25,7 @@ type SidebarProps = {
   compileMode: CompileMode;
   onCompileModeChange: (mode: CompileMode) => void;
   compileProgress?: { phase: string; message?: string } | null;
-  apiKeyConfigured: boolean;
+  aiAvailable: { builtinAi: boolean; geminiApi: boolean; anyAvailable: boolean };
 };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -54,7 +54,7 @@ export function Sidebar({
   compileMode,
   onCompileModeChange,
   compileProgress,
-  apiKeyConfigured,
+  aiAvailable,
 }: SidebarProps) {
   const isCreateMode = state.flowMode === 'create';
   const isAi = compileMode === 'ai';
@@ -263,12 +263,10 @@ export function Sidebar({
           <CompileModeToggle
             value={compileMode}
             onChange={onCompileModeChange}
-            disabled={!apiKeyConfigured}
+            disabled={!aiAvailable.anyAvailable}
           />
           <div style={{ marginTop: 'var(--space-2)' }}>
-            <ApiKeySettings
-              onKeyChange={(configured) => dispatch({ type: 'SET_API_KEY_CONFIGURED', payload: configured })}
-            />
+            <AiSettings aiAvailable={aiAvailable} />
           </div>
         </GlassPanel>
       </div>

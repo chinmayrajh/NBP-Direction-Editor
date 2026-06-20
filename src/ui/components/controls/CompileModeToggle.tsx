@@ -19,7 +19,7 @@ const MODES: { id: CompileMode; icon: string; title: string; description: string
     id: 'ai',
     icon: '🧠',
     title: 'AI-Guided',
-    description: 'Gemini extrapolates intent · ~2-5s',
+    description: 'Built-in AI · local · ~1-3s',
   },
 ];
 
@@ -127,7 +127,7 @@ export function CompileModeToggle({ value, onChange, disabled }: CompileModeTogg
                 lineHeight: 'var(--leading-tight)',
               }}
             >
-              {isDisabled ? 'Requires API key' : mode.description}
+              {isDisabled ? 'AI not available' : mode.description}
             </span>
           </button>
         );
