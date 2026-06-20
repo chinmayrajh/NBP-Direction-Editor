@@ -4,7 +4,7 @@
  * Debounces compilation by 500ms on any state change.
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useCallback } from 'react';
 import type { LockedElements } from '../../ir/types';
 import type { DirectorInputs } from '../../ir/project';
 import type { DirectorState, DirectorAction } from './useDirectorState';
@@ -43,7 +43,6 @@ function buildInputs(state: DirectorState): DirectorInputs {
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useCompiler(state: DirectorState, dispatch: React.Dispatch<DirectorAction>) {
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const compile = useCallback(() => {
     dispatch({ type: 'COMPILE_START' });
@@ -76,32 +75,6 @@ export function useCompiler(state: DirectorState, dispatch: React.Dispatch<Direc
     state.negativeConstraints,
     dispatch,
   ]);
-
-  const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    // Compile immediately on mount — no waiting
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      compile();
-      return;
-    }
-
-    // Debounce subsequent changes
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      compile();
-    }, 300);
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [compile]);
 
   return { compile };
 }

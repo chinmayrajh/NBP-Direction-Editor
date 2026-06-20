@@ -260,7 +260,7 @@ export function Sidebar({ state, dispatch, onCompile, isCompiling }: SidebarProp
             color: 'var(--text-muted)',
           }}
         >
-          Auto-compiles on changes · or click to recompile
+          Set your scene and options, then compile
         </div>
       </div>
     </aside>
