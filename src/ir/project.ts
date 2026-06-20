@@ -159,6 +159,18 @@ export type AiPipelineState = {
   critiqueIR?: CritiqueIR;
   /** Number of critique → patch → regenerate iterations completed. */
   critiqueIterations?: number;
+
+  // ── AI-Specific Fields ────────────────────────────────────────────────
+  /** Which pipeline path produced this result. */
+  source?: 'deterministic' | 'ai';
+  /** AI model's reasoning for creative decisions. */
+  aiReasoning?: string;
+  /** Validation results from deterministic validators. */
+  aiValidation?: {
+    pass: boolean;
+    issues: { module: string; severity: string; message: string; autoFixed: boolean }[];
+    fixedPlan: Record<string, string>;
+  };
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

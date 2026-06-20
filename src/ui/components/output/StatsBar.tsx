@@ -8,8 +8,24 @@ type StatsBarProps = {
 export function StatsBar({ project }: StatsBarProps) {
   const prompt = project?.aiPipeline?.finalPromptIR;
   const elapsed = project?.generationState?.elapsedMs;
+  const source = project?.aiPipeline?.source;
+
+  // Smart duration formatting
+  const durationValue =
+    elapsed != null
+      ? elapsed < 1000
+        ? `${elapsed}ms`
+        : `${(elapsed / 1000).toFixed(1)}s`
+      : '—';
+
+  const sourceIcon = source === 'ai' ? '🧠' : '⚡';
 
   const stats = [
+    {
+      label: 'Source',
+      value: source === 'ai' ? 'AI' : 'Fast',
+      icon: sourceIcon,
+    },
     {
       label: 'Tokens',
       value: prompt?.tokenCount?.toString() ?? '—',
@@ -27,7 +43,7 @@ export function StatsBar({ project }: StatsBarProps) {
     },
     {
       label: 'Duration',
-      value: elapsed != null ? `${elapsed}ms` : '—',
+      value: durationValue,
       icon: '⏱️',
     },
   ];

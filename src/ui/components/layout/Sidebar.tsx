@@ -2,6 +2,7 @@ import React from 'react';
 import type { DirectorState, DirectorAction } from '../../hooks/useDirectorState';
 import { GlassPanel } from '../shared/GlassPanel';
 import { FlowModeSelector } from '../controls/FlowModeSelector';
+import { CompileModeToggle } from '../controls/CompileModeToggle';
 import { SceneInput } from '../controls/SceneInput';
 import { CameraSelector } from '../controls/CameraSelector';
 import { LightingSelector } from '../controls/LightingSelector';
@@ -13,11 +14,17 @@ import { WardrobeInput } from '../controls/WardrobeInput';
 import { LockedElementsPanel } from '../controls/LockedElements';
 import { NegativeInput } from '../controls/NegativeInput';
 
+type CompileMode = 'deterministic' | 'ai';
+
 type SidebarProps = {
   state: DirectorState;
   dispatch: React.Dispatch<DirectorAction>;
   onCompile: () => void;
   isCompiling: boolean;
+  compileMode: CompileMode;
+  onCompileModeChange: (mode: CompileMode) => void;
+  compileProgress?: { phase: string; message?: string } | null;
+  apiKeyConfigured: boolean;
 };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -38,8 +45,81 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Sidebar({ state, dispatch, onCompile, isCompiling }: SidebarProps) {
+export function Sidebar({
+  state,
+  dispatch,
+  onCompile,
+  isCompiling,
+  compileMode,
+  onCompileModeChange,
+  compileProgress,
+  apiKeyConfigured,
+}: SidebarProps) {
   const isCreateMode = state.flowMode === 'create';
+  const isAi = compileMode === 'ai';
+
+  // Phased compile button text
+  let compileButtonContent: React.ReactNode;
+  if (isCompiling) {
+    let phaseText = 'Compiling…';
+    let phaseIcon: React.ReactNode = (
+      <span
+        style={{
+          display: 'inline-block',
+          width: 16,
+          height: 16,
+          border: isAi
+            ? '2px solid rgba(139,92,246,0.3)'
+            : '2px solid rgba(74,125,255,0.3)',
+          borderTopColor: isAi ? 'var(--accent-purple)' : 'var(--accent-blue)',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }}
+      />
+    );
+
+    if (compileProgress?.phase === 'planning') {
+      phaseText = '🧠 Planning…';
+      phaseIcon = null;
+    } else if (compileProgress?.phase === 'validating') {
+      phaseText = '🔍 Validating…';
+      phaseIcon = null;
+    } else if (compileProgress?.phase === 'assembling') {
+      phaseText = '📦 Assembling…';
+      phaseIcon = null;
+    }
+
+    compileButtonContent = (
+      <>
+        {phaseIcon}
+        {phaseText}
+      </>
+    );
+  } else {
+    compileButtonContent = isAi ? (
+      <>
+        <span style={{ fontSize: '1.1rem' }}>🧠</span>
+        AI Compile
+      </>
+    ) : (
+      <>
+        <span style={{ fontSize: '1.1rem' }}>⚡</span>
+        Compile Prompt
+      </>
+    );
+  }
+
+  // Button gradient
+  const buttonGradient = isAi
+    ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
+    : 'var(--accent-gradient)';
+  const buttonGlow = isAi
+    ? 'var(--shadow-glow-purple)'
+    : 'var(--shadow-glow-blue)';
+  const buttonAccentColor = isAi ? 'var(--accent-purple)' : 'var(--accent-blue)';
+  const buttonHoverShadow = isAi
+    ? '0 0 30px rgba(139,92,246,0.35), 0 0 80px rgba(139,92,246,0.12)'
+    : '0 0 30px rgba(74,125,255,0.35), 0 0 80px rgba(74,125,255,0.12)';
 
   return (
     <aside
@@ -175,6 +255,16 @@ export function Sidebar({ state, dispatch, onCompile, isCompiling }: SidebarProp
             onChange={(v) => dispatch({ type: 'SET_NEGATIVES', payload: v })}
           />
         </GlassPanel>
+
+        {/* Compile Mode Toggle */}
+        <GlassPanel padding="var(--space-3)">
+          <SectionLabel>Compile Mode</SectionLabel>
+          <CompileModeToggle
+            value={compileMode}
+            onChange={onCompileModeChange}
+            disabled={!apiKeyConfigured}
+          />
+        </GlassPanel>
       </div>
 
       {/* ─── Compile Button — pinned to bottom ─── */}
@@ -197,11 +287,11 @@ export function Sidebar({ state, dispatch, onCompile, isCompiling }: SidebarProp
             gap: 'var(--space-2)',
             padding: 'var(--space-4) var(--space-6)',
             background: isCompiling
-              ? 'rgba(74,125,255,0.15)'
-              : 'var(--accent-gradient)',
-            color: isCompiling ? 'var(--accent-blue)' : '#fff',
+              ? `rgba(${isAi ? '139,92,246' : '74,125,255'},0.15)`
+              : buttonGradient,
+            color: isCompiling ? buttonAccentColor : '#fff',
             border: isCompiling
-              ? '1px solid rgba(74,125,255,0.3)'
+              ? `1px solid rgba(${isAi ? '139,92,246' : '74,125,255'},0.3)`
               : '1px solid transparent',
             borderRadius: 'var(--radius-lg)',
             fontSize: 'var(--text-md)',
@@ -209,7 +299,7 @@ export function Sidebar({ state, dispatch, onCompile, isCompiling }: SidebarProp
             fontFamily: 'var(--font-sans)',
             cursor: isCompiling ? 'not-allowed' : 'pointer',
             transition: 'all var(--duration-fast) var(--ease-default)',
-            boxShadow: isCompiling ? 'none' : 'var(--shadow-glow-blue)',
+            boxShadow: isCompiling ? 'none' : buttonGlow,
             letterSpacing: '-0.01em',
             position: 'relative',
             overflow: 'hidden',
@@ -217,38 +307,17 @@ export function Sidebar({ state, dispatch, onCompile, isCompiling }: SidebarProp
           onMouseOver={(e) => {
             if (!isCompiling) {
               (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
-              (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                '0 0 30px rgba(74,125,255,0.35), 0 0 80px rgba(74,125,255,0.12)';
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = buttonHoverShadow;
             }
           }}
           onMouseOut={(e) => {
             (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
             (e.currentTarget as HTMLButtonElement).style.boxShadow = isCompiling
               ? 'none'
-              : 'var(--shadow-glow-blue)';
+              : buttonGlow;
           }}
         >
-          {isCompiling ? (
-            <>
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: 16,
-                  height: 16,
-                  border: '2px solid rgba(74,125,255,0.3)',
-                  borderTopColor: 'var(--accent-blue)',
-                  borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite',
-                }}
-              />
-              Compiling…
-            </>
-          ) : (
-            <>
-              <span style={{ fontSize: '1.1rem' }}>⚡</span>
-              Compile Prompt
-            </>
-          )}
+          {compileButtonContent}
         </button>
 
         {/* Hint */}
@@ -260,7 +329,9 @@ export function Sidebar({ state, dispatch, onCompile, isCompiling }: SidebarProp
             color: 'var(--text-muted)',
           }}
         >
-          Set your scene and options, then compile
+          {isAi
+            ? 'Uses Gemini AI · ~2-5s'
+            : 'Set your scene and options, then compile'}
         </div>
       </div>
     </aside>

@@ -3,9 +3,43 @@ import React from 'react';
 type HeaderProps = {
   isCompiling: boolean;
   isCompleted: boolean;
+  compileProgress?: { phase: string; message: string } | null;
 };
 
-export function Header({ isCompiling, isCompleted }: HeaderProps) {
+export function Header({ isCompiling, isCompleted, compileProgress }: HeaderProps) {
+  const isAiPhase = compileProgress?.phase === 'planning' ||
+    compileProgress?.phase === 'validating' ||
+    compileProgress?.phase === 'assembling';
+
+  // Status text
+  let statusText: string;
+  if (compileProgress && isCompiling) {
+    statusText = compileProgress.message;
+  } else if (isCompiling) {
+    statusText = 'Compiling…';
+  } else if (isCompleted) {
+    statusText = 'Compiled';
+  } else {
+    statusText = 'Ready';
+  }
+
+  // Status indicator colors
+  const dotColor = isCompiling
+    ? isAiPhase
+      ? 'var(--accent-purple)'
+      : 'var(--accent-warm)'
+    : isCompleted
+      ? 'var(--accent-green)'
+      : 'var(--text-muted)';
+
+  const dotGlow = isCompiling
+    ? isAiPhase
+      ? '0 0 8px rgba(139,92,246,0.5)'
+      : '0 0 8px rgba(245,158,11,0.5)'
+    : isCompleted
+      ? '0 0 8px rgba(16,185,129,0.5)'
+      : 'none';
+
   return (
     <header
       style={{
@@ -71,20 +105,12 @@ export function Header({ isCompiling, isCompleted }: HeaderProps) {
             width: 8,
             height: 8,
             borderRadius: '50%',
-            background: isCompiling
-              ? 'var(--accent-warm)'
-              : isCompleted
-                ? 'var(--accent-green)'
-                : 'var(--text-muted)',
-            boxShadow: isCompiling
-              ? '0 0 8px rgba(245,158,11,0.5)'
-              : isCompleted
-                ? '0 0 8px rgba(16,185,129,0.5)'
-                : 'none',
+            background: dotColor,
+            boxShadow: dotGlow,
             animation: isCompiling ? 'pulse-glow 1.5s ease-in-out infinite' : 'none',
           }}
         />
-        {isCompiling ? 'Compiling…' : isCompleted ? 'Compiled' : 'Ready'}
+        {statusText}
       </div>
     </header>
   );

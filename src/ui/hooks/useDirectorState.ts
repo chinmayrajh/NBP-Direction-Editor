@@ -18,10 +18,27 @@ import { deriveLockedElements } from '../../compiler/normalize-inputs';
  */
 export type FlowMode = 'create' | 'edit';
 
+// ─── Compile Mode ──────────────────────────────────────────────────────────────
+
+/** Whether to use deterministic rules or AI-guided shot planning. */
+export type CompileMode = 'deterministic' | 'ai';
+
+// ─── Compile Progress ──────────────────────────────────────────────────────────
+
+/** Progress state for the multi-phase AI compilation. */
+export type CompileProgress = {
+  phase: 'planning' | 'validating' | 'assembling' | 'done' | 'error';
+  message: string;
+  startedAt: number;
+} | null;
+
 // ─── State ─────────────────────────────────────────────────────────────────────
 
 export type DirectorState = {
   flowMode: FlowMode;
+  compileMode: CompileMode;
+  compileProgress: CompileProgress;
+  apiKeyConfigured: boolean;
   scene: string;
   cameraStyle: CameraStyle;
   lightingStyle: LightingStyle;
@@ -35,10 +52,15 @@ export type DirectorState = {
   project: DirectorProject | null;
   isCompiling: boolean;
   error: string | null;
+  /** AI error code for structured error display (separate from generic error). */
+  aiError: string | null;
 };
 
 const initialState: DirectorState = {
   flowMode: 'create',
+  compileMode: 'deterministic',
+  compileProgress: null,
+  apiKeyConfigured: false,
   scene: '',
   cameraStyle: '85mm_portrait',
   lightingStyle: 'window_light',
@@ -52,12 +74,16 @@ const initialState: DirectorState = {
   project: null,
   isCompiling: false,
   error: null,
+  aiError: null,
 };
 
 // ─── Actions ───────────────────────────────────────────────────────────────────
 
 export type DirectorAction =
   | { type: 'SET_FLOW_MODE'; payload: FlowMode }
+  | { type: 'SET_COMPILE_MODE'; payload: CompileMode }
+  | { type: 'SET_COMPILE_PROGRESS'; payload: CompileProgress }
+  | { type: 'SET_API_KEY_CONFIGURED'; payload: boolean }
   | { type: 'SET_SCENE'; payload: string }
   | { type: 'SET_CAMERA'; payload: CameraStyle }
   | { type: 'SET_LIGHTING'; payload: LightingStyle }
@@ -70,7 +96,8 @@ export type DirectorAction =
   | { type: 'SET_NEGATIVES'; payload: string }
   | { type: 'COMPILE_START' }
   | { type: 'COMPILE_SUCCESS'; payload: DirectorProject }
-  | { type: 'COMPILE_ERROR'; payload: string };
+  | { type: 'COMPILE_ERROR'; payload: string }
+  | { type: 'SET_AI_ERROR'; payload: string | null };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────────
 
@@ -93,6 +120,15 @@ function directorReducer(state: DirectorState, action: DirectorAction): Director
         lockedElements: deriveLockedElements('preserve_enhance'),
       };
     }
+
+    case 'SET_COMPILE_MODE':
+      return { ...state, compileMode: action.payload };
+
+    case 'SET_COMPILE_PROGRESS':
+      return { ...state, compileProgress: action.payload };
+
+    case 'SET_API_KEY_CONFIGURED':
+      return { ...state, apiKeyConfigured: action.payload };
 
     case 'SET_SCENE':
       return { ...state, scene: action.payload };
@@ -135,13 +171,27 @@ function directorReducer(state: DirectorState, action: DirectorAction): Director
       return { ...state, negativeConstraints: action.payload };
 
     case 'COMPILE_START':
-      return { ...state, isCompiling: true, error: null };
+      return { ...state, isCompiling: true, error: null, aiError: null };
 
     case 'COMPILE_SUCCESS':
-      return { ...state, isCompiling: false, project: action.payload, error: null };
+      return {
+        ...state,
+        isCompiling: false,
+        project: action.payload,
+        error: null,
+        compileProgress: null,
+      };
 
     case 'COMPILE_ERROR':
-      return { ...state, isCompiling: false, error: action.payload };
+      return {
+        ...state,
+        isCompiling: false,
+        error: action.payload,
+        compileProgress: null,
+      };
+
+    case 'SET_AI_ERROR':
+      return { ...state, aiError: action.payload };
 
     default:
       return state;

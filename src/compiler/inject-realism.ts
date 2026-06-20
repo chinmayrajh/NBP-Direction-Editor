@@ -29,7 +29,7 @@ import { NBP_RULES } from '../config/nbp-rules.js';
  * @param identity - The identity IR with tiered anchors.
  * @returns A comma-separated string of identity-preservation tokens.
  */
-function buildIdentityLockString(identity: IdentityIR): string {
+export function buildIdentityLockString(identity: IdentityIR): string {
   const parts: string[] = [];
 
   // Tier 1 anchors — highest weight, always included
