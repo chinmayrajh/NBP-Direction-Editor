@@ -7,7 +7,8 @@
  * 3. Throws NO_AI_AVAILABLE — caller falls back to deterministic
  */
 
-import { GoogleGenAI } from '@google/genai';
+// @google/genai is lazy-loaded only when the Gemini API fallback path is used.
+// This saves ~100KB from the main bundle since most users will use the built-in Prompt API.
 import type { DirectorInputs } from '../ir/project.js';
 import { ShotPlanSchema, getShotPlanJsonSchema } from './schema.js';
 import type { ShotPlan } from './schema.js';
@@ -144,6 +145,7 @@ async function planShotWithGeminiAPI(
   inputs: DirectorInputs,
   apiKey: string,
 ): Promise<ShotPlan> {
+  const { GoogleGenAI } = await import('@google/genai');
   const genai = new GoogleGenAI({ apiKey });
 
   const response = await genai.models.generateContent({

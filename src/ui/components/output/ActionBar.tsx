@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { isExtensionContext } from '../../../platform/index.js';
 
 type ActionBarProps = {
   prompt: string;
@@ -10,11 +11,9 @@ export function ActionBar({ prompt }: ActionBarProps) {
   const [insertStatus, setInsertStatus] = useState<'idle' | 'inserted' | 'error'>('idle');
   const [isGeminiTab, setIsGeminiTab] = useState<boolean | null>(null);
 
-  const isExtension = typeof chrome !== 'undefined' && !!chrome?.runtime?.sendMessage;
-
   // Check if on Gemini tab
   useEffect(() => {
-    if (!isExtension) return;
+    if (!isExtensionContext) return;
     try {
       chrome.runtime.sendMessage({ type: 'IS_GEMINI_TAB' }, (response) => {
         setIsGeminiTab(response?.isGemini ?? false);
@@ -22,7 +21,7 @@ export function ActionBar({ prompt }: ActionBarProps) {
     } catch {
       setIsGeminiTab(false);
     }
-  }, [isExtension]);
+  }, []);
 
   const handleCopy = useCallback(async () => {
     if (!prompt) return;
@@ -44,7 +43,7 @@ export function ActionBar({ prompt }: ActionBarProps) {
   }, [prompt]);
 
   const handleInsert = useCallback(() => {
-    if (!prompt || !isExtension) return;
+    if (!prompt || !isExtensionContext) return;
     try {
       chrome.runtime.sendMessage({ type: 'INSERT_PROMPT', prompt }, (response) => {
         if (response?.success) {
@@ -59,7 +58,7 @@ export function ActionBar({ prompt }: ActionBarProps) {
       setInsertStatus('error');
       setTimeout(() => setInsertStatus('idle'), 3000);
     }
-  }, [prompt, isExtension]);
+  }, [prompt]);
 
   const insertDisabled = isGeminiTab === false;
 
@@ -81,7 +80,7 @@ export function ActionBar({ prompt }: ActionBarProps) {
         onClick={handleCopy}
         disabled={!prompt}
         style={{
-          flex: isExtension ? 2 : 1,
+          flex: isExtensionContext ? 2 : 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -101,7 +100,7 @@ export function ActionBar({ prompt }: ActionBarProps) {
         onMouseOver={(e) => {
           if (prompt && copyStatus !== 'copied') {
             (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)';
-            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.14)';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(140, 160, 255, 0.15)';
           }
         }}
         onMouseOut={(e) => {
@@ -111,11 +110,13 @@ export function ActionBar({ prompt }: ActionBarProps) {
           }
         }}
       >
-        {copyStatus === 'copied' ? '✓ Copied' : '📋 Copy'}
+        {copyStatus === 'copied' ? (
+          <span style={{ animation: 'pop-in 0.2s ease-out' }}>✓ Copied</span>
+        ) : '📋 Copy'}
       </button>
 
       {/* Insert button — only in extension context */}
-      {isExtension && (
+      {isExtensionContext && (
         <button
           onClick={handleInsert}
           disabled={!prompt || insertDisabled}
@@ -140,7 +141,8 @@ export function ActionBar({ prompt }: ActionBarProps) {
                 ? 'rgba(16,185,129,0.15)'
                 : insertStatus === 'error'
                   ? 'rgba(239,68,68,0.1)'
-                  : 'rgba(74,125,255,0.1)',
+                  : 'linear-gradient(135deg, rgba(74,125,255,0.12), rgba(139,92,246,0.08))',
+            boxShadow: insertStatus === 'idle' ? '0 0 12px rgba(74,125,255,0.08)' : 'none',
             color:
               insertStatus === 'inserted'
                 ? 'var(--accent-green)'
@@ -157,16 +159,18 @@ export function ActionBar({ prompt }: ActionBarProps) {
           onMouseOver={(e) => {
             if (prompt && !insertDisabled && insertStatus === 'idle') {
               (e.currentTarget as HTMLButtonElement).style.background = 'rgba(74,125,255,0.18)';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(74,125,255,0.5)';
             }
           }}
           onMouseOut={(e) => {
             if (insertStatus === 'idle') {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(74,125,255,0.1)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(135deg, rgba(74,125,255,0.12), rgba(139,92,246,0.08))';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(74,125,255,0.3)';
             }
           }}
         >
           {insertStatus === 'inserted'
-            ? '✓ Inserted'
+            ? <span style={{ animation: 'pop-in 0.2s ease-out' }}>✓ Inserted</span>
             : insertStatus === 'error'
               ? '❌ Couldn\'t insert — try Copy'
               : insertDisabled

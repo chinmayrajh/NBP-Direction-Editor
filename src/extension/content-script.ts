@@ -41,11 +41,15 @@ function findEditor(): HTMLElement | null {
 
 // ─── Text Injection ────────────────────────────────────────────────────────
 
-function injectText(element: HTMLElement, text: string): boolean {
+function injectText(element: HTMLElement, text: string): Promise<boolean> {
   element.focus();
 
-  // Wait a tick for focus to settle
-  return injectTextSync(element, text);
+  // Wait a frame for focus to settle (ProseMirror needs this)
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      resolve(injectTextSync(element, text));
+    });
+  });
 }
 
 function injectTextSync(element: HTMLElement, text: string): boolean {
@@ -105,7 +109,7 @@ chrome.runtime.onMessage.addListener(
   ) => {
     if (message.type === 'INSERT_PROMPT' && message.prompt) {
       // Small delay to ensure the page is ready
-      setTimeout(() => {
+      setTimeout(async () => {
         const editor = findEditor();
         if (!editor) {
           sendResponse({
@@ -115,7 +119,7 @@ chrome.runtime.onMessage.addListener(
           return;
         }
 
-        const ok = injectText(editor, message.prompt!);
+        const ok = await injectText(editor, message.prompt!);
         if (ok) {
           sendResponse({ success: true });
         } else {

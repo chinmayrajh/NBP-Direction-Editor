@@ -30,7 +30,7 @@ export function AiSettings({ aiAvailable, onKeyChange }: AiSettingsProps) {
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            padding: '6px 10px',
+            padding: 'var(--space-2) var(--space-3)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid rgba(16,185,129,0.25)',
             background: 'rgba(16,185,129,0.1)',
@@ -39,7 +39,8 @@ export function AiSettings({ aiAvailable, onKeyChange }: AiSettingsProps) {
             fontWeight: 'var(--weight-medium)',
           }}
         >
-          ✅ Built-in AI ready
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-green)', boxShadow: '0 0 6px rgba(16,185,129,0.5)', display: 'inline-block', flexShrink: 0 }} />
+          Built-in AI ready
         </div>
 
         {/* Optional: expand to configure API key for cloud model */}
@@ -60,7 +61,7 @@ export function AiSettings({ aiAvailable, onKeyChange }: AiSettingsProps) {
         >
           <span
             style={{
-              fontSize: '0.5rem',
+              fontSize: 'var(--text-xs)',
               display: 'inline-block',
               transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)',
               transition: 'transform var(--duration-fast) var(--ease-default)',
@@ -88,7 +89,7 @@ export function AiSettings({ aiAvailable, onKeyChange }: AiSettingsProps) {
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          padding: '6px 10px',
+          padding: 'var(--space-2) var(--space-3)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid rgba(16,185,129,0.25)',
           background: 'rgba(16,185,129,0.1)',
@@ -97,7 +98,8 @@ export function AiSettings({ aiAvailable, onKeyChange }: AiSettingsProps) {
           fontWeight: 'var(--weight-medium)',
         }}
       >
-        🔑 API Key configured
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-green)', boxShadow: '0 0 6px rgba(16,185,129,0.5)', display: 'inline-block', flexShrink: 0 }} />
+        API Key configured
       </div>
     );
   }
@@ -116,7 +118,7 @@ export function AiSettings({ aiAvailable, onKeyChange }: AiSettingsProps) {
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          padding: '6px 10px',
+          padding: 'var(--space-2) var(--space-3)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-glass)',
           background: 'rgba(255,255,255,0.03)',
@@ -125,7 +127,8 @@ export function AiSettings({ aiAvailable, onKeyChange }: AiSettingsProps) {
           fontWeight: 'var(--weight-medium)',
         }}
       >
-        ⚡ Using fast compile
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-blue)', boxShadow: '0 0 6px rgba(74,125,255,0.5)', display: 'inline-block', flexShrink: 0 }} />
+        Using fast compile
       </div>
 
       <button
@@ -145,7 +148,7 @@ export function AiSettings({ aiAvailable, onKeyChange }: AiSettingsProps) {
       >
         <span
           style={{
-            fontSize: '0.5rem',
+            fontSize: 'var(--text-xs)',
             display: 'inline-block',
             transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)',
             transition: 'transform var(--duration-fast) var(--ease-default)',

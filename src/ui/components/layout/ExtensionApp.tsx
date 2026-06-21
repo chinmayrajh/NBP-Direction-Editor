@@ -42,7 +42,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
         marginTop: 'var(--space-2)',
       }}
     >
-      {children}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+        <div style={{ width: 2, height: 12, borderRadius: 1, background: 'var(--accent-gradient)' }} />
+        {children}
+      </div>
     </div>
   );
 }
@@ -118,7 +121,7 @@ export function ExtensionApp() {
       : '0 0 8px rgba(245,158,11,0.5)'
     : isCompleted
       ? '0 0 8px rgba(16,185,129,0.5)'
-      : 'none';
+      : '0 0 4px rgba(85,85,106,0.4)';
 
   // Compile button content
   let compileButtonContent: React.ReactNode;
@@ -257,6 +260,7 @@ export function ExtensionApp() {
           borderBottom: '1px solid var(--border-glass)',
           background: 'var(--bg-secondary)',
           flexShrink: 0,
+          position: 'relative',
         }}
       >
         {([
@@ -276,9 +280,7 @@ export function ExtensionApp() {
                 padding: 'var(--space-3) var(--space-4)',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: isActive
-                  ? `2px solid ${tabAccent}`
-                  : '2px solid transparent',
+                borderBottom: '2px solid transparent',
                 color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
                 fontSize: 'var(--text-sm)',
                 fontWeight: isActive ? 'var(--weight-semibold)' : 'var(--weight-medium)',
@@ -286,11 +288,32 @@ export function ExtensionApp() {
                 cursor: 'pointer',
                 transition: 'all var(--duration-fast) var(--ease-default)',
               }}
+              onMouseOver={(e) => {
+                if (!isActive) {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)';
+                }
+              }}
+              onMouseOut={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+              }}
             >
               {tab.label}
             </button>
           );
         })}
+        {/* Sliding active indicator */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            height: 2,
+            width: '50%',
+            background: 'var(--accent-gradient)',
+            transform: activeTab === 'configure' ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        />
       </div>
 
       {/* ─── Tab Content ─── */}
@@ -302,6 +325,8 @@ export function ExtensionApp() {
           display: 'flex',
           flexDirection: 'column',
           gap: 'var(--space-3)',
+          maskImage: 'linear-gradient(to bottom, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%)',
         }}
       >
         {activeTab === 'configure' && (
@@ -598,44 +623,50 @@ export function ExtensionApp() {
                 Advanced
               </button>
 
-              {advancedOpen && (
-                <div
-                  style={{
-                    padding: '0 var(--space-4) var(--space-4)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'var(--space-3)',
-                    animation: 'fade-in var(--duration-fast) var(--ease-default)',
-                  }}
-                >
-                  {/* Pipeline Visualizer */}
-                  <GlassPanel title="Pipeline">
-                    <PipelineVisualizer
-                      project={state.project}
-                      isCompiling={state.isCompiling}
-                      compileMode={state.compileMode}
-                      compileProgress={state.compileProgress}
-                    />
-                  </GlassPanel>
-
-                  {/* Confidence Dashboard */}
-                  {state.project?.confidence && (
-                    <GlassPanel title="Confidence Scores">
-                      <ConfidenceDashboard confidence={state.project.confidence} />
+              {/* Smooth height animation with CSS grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateRows: advancedOpen ? '1fr' : '0fr',
+                transition: 'grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}>
+                <div style={{ overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      padding: '0 var(--space-4) var(--space-4)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 'var(--space-3)',
+                    }}
+                  >
+                    {/* Pipeline Visualizer */}
+                    <GlassPanel title="Pipeline">
+                      <PipelineVisualizer
+                        project={state.project}
+                        isCompiling={state.isCompiling}
+                        compileMode={state.compileMode}
+                        compileProgress={state.compileProgress}
+                      />
                     </GlassPanel>
-                  )}
 
-                  {/* Module Inspector */}
-                  <GlassPanel title="Prompt Modules">
-                    <ModuleInspector
-                      modules={state.project?.aiPipeline?.finalPromptIR?.modules}
-                    />
-                  </GlassPanel>
+                    {/* Confidence Dashboard */}
+                    {state.project?.confidence && (
+                      <GlassPanel title="Confidence Scores">
+                        <ConfidenceDashboard confidence={state.project.confidence} />
+                      </GlassPanel>
+                    )}
 
-                  {/* Stats Bar */}
-                  <StatsBar project={state.project} />
+                    {/* Module Inspector */}
+                    <GlassPanel title="Prompt Modules">
+                      <ModuleInspector
+                        modules={state.project?.aiPipeline?.finalPromptIR?.modules}
+                      />
+                    </GlassPanel>
+
+                    {/* Stats Bar */}
+                    <StatsBar project={state.project} />
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         )}
@@ -691,8 +722,31 @@ export function ExtensionApp() {
               ? 'none'
               : buttonGlow;
           }}
+          onMouseDown={(e) => {
+            if (!state.isCompiling) {
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.98)';
+            }
+          }}
+          onMouseUp={(e) => {
+            if (!state.isCompiling) {
+              (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
+            }
+          }}
         >
           {compileButtonContent}
+          {state.isCompiling && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: `linear-gradient(90deg, transparent, rgba(${isAi ? '139,92,246' : '74,125,255'}, 0.1), transparent)`,
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 1.5s ease-in-out infinite',
+                borderRadius: 'inherit',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
         </button>
       </div>
 

@@ -26,6 +26,7 @@ type SidebarProps = {
   onCompileModeChange: (mode: CompileMode) => void;
   compileProgress?: { phase: string; message?: string } | null;
   aiAvailable: { builtinAi: boolean; geminiApi: boolean; anyAvailable: boolean };
+  onAiKeyChange?: () => void;
 };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -55,6 +56,7 @@ export function Sidebar({
   onCompileModeChange,
   compileProgress,
   aiAvailable,
+  onAiKeyChange,
 }: SidebarProps) {
   const isCreateMode = state.flowMode === 'create';
   const isAi = compileMode === 'ai';
@@ -266,7 +268,7 @@ export function Sidebar({
             disabled={!aiAvailable.anyAvailable}
           />
           <div style={{ marginTop: 'var(--space-2)' }}>
-            <AiSettings aiAvailable={aiAvailable} />
+            <AiSettings aiAvailable={aiAvailable} onKeyChange={onAiKeyChange ? () => onAiKeyChange() : undefined} />
           </div>
         </GlassPanel>
       </div>

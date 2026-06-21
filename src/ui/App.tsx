@@ -26,7 +26,14 @@ function DesktopApp() {
   useEffect(() => {
     isAiAvailable().then((availability) => {
       dispatch({ type: 'SET_AI_AVAILABLE', payload: availability });
-    });
+    }).catch(() => { /* keep defaults: no AI */ });
+  }, [dispatch]);
+
+  // Re-check AI availability when API key changes
+  const recheckAi = React.useCallback(() => {
+    isAiAvailable().then((availability) => {
+      dispatch({ type: 'SET_AI_AVAILABLE', payload: availability });
+    }).catch(() => { /* keep current state */ });
   }, [dispatch]);
 
   const isCompleted = state.project?.generationState?.status === 'completed';
@@ -62,6 +69,7 @@ function DesktopApp() {
             onCompileModeChange={(mode) => dispatch({ type: 'SET_COMPILE_MODE', payload: mode })}
             compileProgress={state.compileProgress}
             aiAvailable={state.aiAvailable}
+            onAiKeyChange={recheckAi}
           />
           <OutputPanel
             project={state.project}

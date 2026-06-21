@@ -74,7 +74,7 @@ export function CompileModeToggle({ value, onChange, disabled }: CompileModeTogg
                     : 'rgba(74,125,255,0.08)'
                   : 'rgba(255,255,255,0.02)',
               cursor: isDisabled ? 'not-allowed' : 'pointer',
-              transition: 'all var(--duration-fast) var(--ease-default)',
+              transition: 'all 0.2s ease',
               outline: 'none',
               fontFamily: 'var(--font-sans)',
               opacity: isDisabled ? 0.4 : 1,
@@ -90,9 +90,12 @@ export function CompileModeToggle({ value, onChange, disabled }: CompileModeTogg
             onMouseOver={(e) => {
               if (!selected && !isDisabled) {
                 (e.currentTarget as HTMLButtonElement).style.background =
-                  'rgba(255,255,255,0.05)';
+                  'rgba(255,255,255,0.06)';
                 (e.currentTarget as HTMLButtonElement).style.borderColor =
-                  'rgba(255,255,255,0.14)';
+                  'rgba(140, 160, 255, 0.15)';
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                  '0 2px 8px rgba(0,0,0,0.2)';
               }
             }}
             onMouseOut={(e) => {
@@ -101,6 +104,8 @@ export function CompileModeToggle({ value, onChange, disabled }: CompileModeTogg
                   'rgba(255,255,255,0.02)';
                 (e.currentTarget as HTMLButtonElement).style.borderColor =
                   'var(--border-glass)';
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
               }
             }}
           >

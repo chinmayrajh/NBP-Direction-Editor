@@ -124,7 +124,7 @@ export function PromptPreview({ project }: PromptPreviewProps) {
           justifyContent: 'space-between',
           padding: 'var(--space-3) var(--space-4)',
           borderBottom: '1px solid var(--border-glass)',
-          background: 'rgba(255,255,255,0.02)',
+          background: 'rgba(140,160,255,0.04)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -166,22 +166,37 @@ export function PromptPreview({ project }: PromptPreviewProps) {
       </div>
 
       {/* Prompt body */}
-      <pre
-        style={{
-          padding: 'var(--space-4)',
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'var(--text-xs)',
-          lineHeight: 'var(--leading-relaxed)',
-          color: 'var(--text-primary)',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          margin: 0,
-          maxHeight: 280,
-          overflow: 'auto',
-        }}
-      >
-        {highlightPrompt(prompt)}
-      </pre>
+      <div style={{ position: 'relative' }}>
+        <pre
+          style={{
+            padding: 'var(--space-4)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
+            lineHeight: 'var(--leading-relaxed)',
+            color: 'var(--text-primary)',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            margin: 0,
+            maxHeight: 280,
+            overflow: 'auto',
+          }}
+        >
+          {highlightPrompt(prompt)}
+        </pre>
+        {/* Fade-out gradient overlay at bottom */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 32,
+            background: 'linear-gradient(to bottom, transparent, rgba(10,10,15,0.8))',
+            pointerEvents: 'none',
+            borderRadius: '0 0 var(--radius-lg) var(--radius-lg)',
+          }}
+        />
+      </div>
     </div>
   );
 }
